@@ -39,4 +39,7 @@ export class UserWithTokenDto {
 
   @ApiProperty({ description: 'JWT refresh token (expires in 30 days)' })
   refreshToken: string;
+
+  @ApiProperty({ description: 'Creation date of the user' })
+  createdAt: Date;
 }

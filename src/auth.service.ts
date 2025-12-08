@@ -124,6 +124,7 @@ export class AuthService {
         userResponse.role = user.role
         userResponse.accessToken = tokens.accessToken
         userResponse.refreshToken = tokens.refreshToken
+        userResponse.createdAt = user.createdAt
 
         return userResponse;
     }
