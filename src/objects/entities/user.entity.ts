@@ -1,6 +1,6 @@
+import { Exclude } from 'class-transformer';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { UserRoleType } from '../enums/user-role.enum';
-import { Exclude } from 'class-transformer';
 
 @Entity()
 export class UserEntity {
@@ -26,5 +26,8 @@ export class UserEntity {
 
   @Column({ nullable: true })
   refreshToken?: string
+
+  @Column({ type: 'timestamp', default: new Date() })
+  createdAt: Date
 
 }
