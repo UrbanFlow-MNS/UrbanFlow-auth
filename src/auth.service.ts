@@ -19,7 +19,7 @@ export class AuthService {
         private jwtService: JwtService,
         private logsService: LogsService,
         @InjectRepository(UserEntity) private repository: Repository<UserEntity>,
-        @Inject('AUTH_QUEUE_OUT') private readonly client: ClientProxy,
+        @Inject('LOGS_SERVICE') private readonly client: ClientProxy,
     ) { 
         this.logsService = new LogsService(client)
     }

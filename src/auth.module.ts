@@ -30,7 +30,7 @@ import { LogsService } from './services/log.service';
 
         ClientsModule.register([
             {
-                name: 'AUTH_QUEUE_OUT',
+                name: 'LOGS_SERVICE',
                 transport: Transport.RMQ,
                 options: {
                     urls: [process.env.RABBIT_MQ ?? ''],
