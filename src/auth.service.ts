@@ -1,20 +1,28 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
+import { ClientProxy } from "@nestjs/microservices";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from 'argon2';
 import { Repository } from "typeorm";
+import { LogBody } from "./objects/dtos/log.body";
 import { UserSignInBody } from "./objects/dtos/user-signin.body";
 import { UserWithTokenDto } from "./objects/dtos/user-with-token.dto";
 import { UserBody } from "./objects/dtos/user.body";
 import { UserEntity } from "./objects/entities/user.entity";
+import { RMQEventType } from "./objects/enums/rmq-event.enum";
+import { LogsService } from "./services/log.service";
 
 @Injectable()
 export class AuthService {
 
     constructor(
         private jwtService: JwtService,
-        @InjectRepository(UserEntity) private repository: Repository<UserEntity>
-    ) { }
+        private logsService: LogsService,
+        @InjectRepository(UserEntity) private repository: Repository<UserEntity>,
+        @Inject('AUTH_QUEUE_OUT') private readonly client: ClientProxy,
+    ) { 
+        this.logsService = new LogsService(client)
+    }
 
     async signIn(body: UserSignInBody) {
         const user = await this.repository.findOne({ where: { email: body.email } });
@@ -33,6 +41,9 @@ export class AuthService {
         await this.repository.update(user.id, {
             refreshToken: await argon2.hash(tokens.refreshToken),
         });
+
+        const logBody = new LogBody("200", "Utilisateur créé")
+        this.logsService.sendEvent(RMQEventType.LOGS_CREATED, logBody)
 
         return this.generateUserWithToken(user, tokens);
     }
