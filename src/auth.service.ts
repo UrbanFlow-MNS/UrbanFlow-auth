@@ -1,5 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
+import { ClientProxy } from "@nestjs/microservices";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from 'argon2';
 import { Repository } from "typeorm";
@@ -13,7 +14,8 @@ export class AuthService {
 
     constructor(
         private jwtService: JwtService,
-        @InjectRepository(UserEntity) private repository: Repository<UserEntity>
+        @InjectRepository(UserEntity) private repository: Repository<UserEntity>,
+        @Inject('AUTH_QUEUE_OUT') private readonly client: ClientProxy,
     ) { }
 
     async signIn(body: UserSignInBody) {
@@ -32,6 +34,12 @@ export class AuthService {
 
         await this.repository.update(user.id, {
             refreshToken: await argon2.hash(tokens.refreshToken),
+        });
+
+        this.client.emit('logs_created', {
+            microserviceName: "Auth",
+            codeOfEvent: "200",
+            event: "test event"
         });
 
         return this.generateUserWithToken(user, tokens);
