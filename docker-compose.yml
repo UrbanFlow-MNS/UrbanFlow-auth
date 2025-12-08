@@ -11,7 +11,7 @@ services:
   auth-service:
     build: .
     ports:
-      - "3000:3000"
+      - "4001:4001"
     env_file:
       - .env
 
