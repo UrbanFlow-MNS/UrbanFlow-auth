@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -9,6 +10,7 @@ import { LogsService } from './services/log.service';
 
 @Module({
     imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
         TypeOrmModule.forRoot({
             type: 'postgres',
             host: process.env.POSTGRES_HOST,
