@@ -7,6 +7,8 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserEntity } from './objects/entities/user.entity';
 import { LogsService } from './services/log.service';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 
 @Module({
     imports: [
@@ -21,7 +23,7 @@ import { LogsService } from './services/log.service';
             entities: [
                 UserEntity
             ],
-            synchronize: Boolean(process.env.POSTGRES_SYNCHRONISE),
+            synchronize: process.env.POSTGRES_SYNCHRONISE === 'true',
         }),
         TypeOrmModule.forFeature([UserEntity]),
 
@@ -42,7 +44,7 @@ import { LogsService } from './services/log.service';
             }
         ])
     ],
-    controllers: [AuthController],
-    providers: [AuthService, LogsService],
+    controllers: [AuthController, UserController],
+    providers: [AuthService, LogsService, UserService],
 })
 export class AuthModule { }

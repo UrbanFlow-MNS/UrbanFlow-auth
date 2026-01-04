@@ -19,18 +19,21 @@ async function bootstrap() {
 
     app.useGlobalPipes(new ValidationPipe())
 
-    app.connectMicroservice<MicroserviceOptions>({
-        transport: Transport.RMQ,
-        options: {
-            urls: [process.env.RABBIT_MQ ?? ''],
-            queue: 'AUTH_QUEUE_IN',
-            queueOptions: {
-                durable: false,
+    if (process.env.ENABLE_RABBITMQ === 'true') {
+        app.connectMicroservice<MicroserviceOptions>({
+            transport: Transport.RMQ,
+            options: {
+                urls: [process.env.RABBIT_MQ ?? ''],
+                queue: 'AUTH_QUEUE_IN',
+                queueOptions: {
+                    durable: false,
+                },
             },
-        },
-    });
+        });
 
-    await app.startAllMicroservices()
+        await app.startAllMicroservices()
+    }
+    
     await app.listen(process.env.API_PORT ?? 3000);
 }
 bootstrap();
