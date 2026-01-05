@@ -23,7 +23,7 @@ import { UserService } from './user.service';
             entities: [
                 UserEntity
             ],
-            synchronize: process.env.POSTGRES_SYNCHRONISE === 'true',
+            synchronize: true // TODO: process.env.POSTGRES_SYNCHRONISE === 'true',
         }),
         TypeOrmModule.forFeature([UserEntity]),
 

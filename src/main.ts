@@ -31,9 +31,18 @@ async function bootstrap() {
             },
         });
 
+        // Configuration du microservice TCP pour la gateway
+        app.connectMicroservice<MicroserviceOptions>({
+            transport: Transport.TCP,
+            options: {
+                host: '0.0.0.0',
+                port: Number(process.env.TCP_PORT) || 6001
+            },
+        });
+
         await app.startAllMicroservices()
     }
-    
+
     await app.listen(process.env.API_PORT ?? 3000);
 }
 bootstrap();

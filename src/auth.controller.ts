@@ -1,16 +1,40 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { UserSignInBody } from './objects/dtos/user-signin.body';
 import { UserWithTokenDto } from './objects/dtos/user-with-token.dto';
 import { UserBody } from './objects/dtos/user.body';
 
+import { ValidationPipe } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+
+export class RpcValidationPipe extends ValidationPipe {
+  constructor() {
+    super({
+      whitelist: true,
+      transform: true,
+      exceptionFactory: (errors) => {
+        const messages = errors
+          .map(e => Object.values(e.constraints ?? {}))
+          .flat();
+
+        const httpException = new BadRequestException(
+          messages.length ? messages[0] : 'Validation error',
+        );
+
+        return new RpcException(httpException);
+      },
+    });
+  }
+}
+
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
 
-    @ApiOperation({ 
+    @ApiOperation({
         summary: 'User registration',
         description: 'Create a new user account with email, password, and personal information'
     })
@@ -22,11 +46,16 @@ export class AuthController {
         return this.authService.signUp(body);
     }
 
-    @ApiOperation({ 
+    @MessagePattern({ cmd: 'auth.signUp' })
+    signUpTcp(@Payload(new RpcValidationPipe()) data: UserBody) {
+        return this.authService.signUp(data);
+    }
+
+    @ApiOperation({
         summary: 'User authentication',
         description: 'Log in with email and password to receive access and refresh tokens'
     })
-    @ApiResponse({ status: 200, description: 'Successfully authenticated', type: UserWithTokenDto})
+    @ApiResponse({ status: 200, description: 'Successfully authenticated', type: UserWithTokenDto })
     @ApiResponse({ status: 401, description: 'Invalid credentials' })
     @ApiResponse({ status: 404, description: 'User not found' })
     @ApiBody({ type: UserSignInBody })
@@ -35,7 +64,7 @@ export class AuthController {
         return this.authService.signIn(body);
     }
 
-    @ApiOperation({ 
+    @ApiOperation({
         summary: 'Refresh access token',
         description: 'Generate a new access token using a valid refresh token'
     })
