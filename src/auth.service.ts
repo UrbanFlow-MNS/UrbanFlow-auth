@@ -1,6 +1,5 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
-import { ClientProxy } from "@nestjs/microservices";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from 'argon2';
 import { Repository } from "typeorm";
@@ -18,11 +17,8 @@ export class AuthService {
     constructor(
         private jwtService: JwtService,
         private logsService: LogsService,
-        @InjectRepository(UserEntity) private repository: Repository<UserEntity>,
-        @Inject('LOGS_SERVICE') private readonly client: ClientProxy,
-    ) { 
-        this.logsService = new LogsService(client)
-    }
+        @InjectRepository(UserEntity) private repository: Repository<UserEntity>
+    ) { }
 
     async signIn(body: UserSignInBody) {
         const user = await this.repository.findOne({ where: { email: body.email } });
