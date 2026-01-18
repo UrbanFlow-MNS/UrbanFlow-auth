@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -6,34 +6,14 @@ import { UserSignInBody } from './objects/dtos/user-signin.body';
 import { UserWithTokenDto } from './objects/dtos/user-with-token.dto';
 import { UserBody } from './objects/dtos/user.body';
 
-import { ValidationPipe } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
-
-export class RpcValidationPipe extends ValidationPipe {
-  constructor() {
-    super({
-      whitelist: true,
-      transform: true,
-      exceptionFactory: (errors) => {
-        const messages = errors
-          .map(e => Object.values(e.constraints ?? {}))
-          .flat();
-
-        const httpException = new BadRequestException(
-          messages.length ? messages[0] : 'Validation error',
-        );
-
-        return new RpcException(httpException);
-      },
-    });
-  }
-}
+import { RpcValidationPipe } from './utils/rpc-validation-pipe';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
 
+    /* Sign up */
     @ApiOperation({
         summary: 'User registration',
         description: 'Create a new user account with email, password, and personal information'
@@ -51,6 +31,7 @@ export class AuthController {
         return this.authService.signUp(data);
     }
 
+    /* Sign In */
     @ApiOperation({
         summary: 'User authentication',
         description: 'Log in with email and password to receive access and refresh tokens'
@@ -64,6 +45,12 @@ export class AuthController {
         return this.authService.signIn(body);
     }
 
+    @MessagePattern({ cmd: 'auth.signIn' })
+    signInTcp(@Payload(new RpcValidationPipe()) data: UserSignInBody) {
+        return this.authService.signIn(data);
+    }
+
+    /* Refresh Token */
     @ApiOperation({
         summary: 'Refresh access token',
         description: 'Generate a new access token using a valid refresh token'
@@ -78,5 +65,10 @@ export class AuthController {
     @Get('refreshToken/:refreshToken')
     async refreshToken(@Param('refreshToken') refreshToken: string) {
         return this.authService.refreshToken(refreshToken);
+    }
+
+    @MessagePattern({ cmd: 'auth.refreshToken' })
+    refreshTokenTcp(@Payload(new RpcValidationPipe()) data: string) {
+        return this.authService.refreshToken(data);
     }
 }
