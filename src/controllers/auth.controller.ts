@@ -1,9 +1,7 @@
+import { UserDto, UserSignInBody, UserSignUpBody } from '@bato-urbanflow/urbanflow-models';
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { UserSignInBody } from '../objects/dtos/user-signin.body';
-import { UserWithTokenDto } from '../objects/dtos/user-with-token.dto';
-import { UserBody } from '../objects/dtos/user.body';
 import { AuthService } from '../services/auth.service';
 
 
@@ -17,12 +15,12 @@ export class AuthController {
         summary: 'User registration',
         description: 'Create a new user account with email, password, and personal information'
     })
-    @ApiResponse({ status: 201, description: 'User successfully created and logged in', type: UserWithTokenDto })
+    @ApiResponse({ status: 201, description: 'User successfully created and logged in', type: UserDto })
     @ApiResponse({ status: 400, description: 'Invalid data provided or email already exists' })
-    @ApiBody({ type: UserBody })
+    @ApiBody({ type: UserSignUpBody })
     @MessagePattern({ cmd: 'auth.signUp' })
     @Post('signUp')
-    async signUp(@Body() body: UserBody) {
+    async signUp(@Body() body: UserSignUpBody) {
         return this.authService.signUp(body);
     }
 
@@ -31,7 +29,7 @@ export class AuthController {
         summary: 'User authentication',
         description: 'Log in with email and password to receive access and refresh tokens'
     })
-    @ApiResponse({ status: 200, description: 'Successfully authenticated', type: UserWithTokenDto })
+    @ApiResponse({ status: 200, description: 'Successfully authenticated', type: UserDto })
     @ApiResponse({ status: 401, description: 'Invalid credentials' })
     @ApiResponse({ status: 404, description: 'User not found' })
     @ApiBody({ type: UserSignInBody })
@@ -51,7 +49,7 @@ export class AuthController {
         description: 'The refresh token received during login',
         example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
     })
-    @ApiResponse({ status: 200, description: 'Token successfully refreshed', type: UserWithTokenDto })
+    @ApiResponse({ status: 200, description: 'Token successfully refreshed', type: UserDto })
     @ApiResponse({ status: 403, description: 'Invalid or expired refresh token' })
     @MessagePattern({ cmd: 'auth.refreshToken' })
     @Get('refreshToken/:refreshToken')
