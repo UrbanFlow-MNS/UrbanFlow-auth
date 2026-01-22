@@ -24,14 +24,14 @@ async function bootstrap() {
             transport: Transport.RMQ,
             options: {
                 urls: [process.env.RABBIT_MQ ?? ''],
-                queue: 'AUTH_QUEUE_IN',
+                queue: 'AUTH_QUEUE',
                 queueOptions: {
                     durable: false,
                 },
             },
         });
 
-        // Configuration du microservice TCP pour la gateway
+        // For gateway
         app.connectMicroservice<MicroserviceOptions>({
             transport: Transport.TCP,
             options: {

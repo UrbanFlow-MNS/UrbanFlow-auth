@@ -1,12 +1,11 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { UserSignInBody } from './objects/dtos/user-signin.body';
-import { UserWithTokenDto } from './objects/dtos/user-with-token.dto';
-import { UserBody } from './objects/dtos/user.body';
+import { UserSignInBody } from '../objects/dtos/user-signin.body';
+import { UserWithTokenDto } from '../objects/dtos/user-with-token.dto';
+import { UserBody } from '../objects/dtos/user.body';
+import { AuthService } from '../services/auth.service';
 
-import { RpcValidationPipe } from './utils/rpc-validation-pipe';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -21,14 +20,10 @@ export class AuthController {
     @ApiResponse({ status: 201, description: 'User successfully created and logged in', type: UserWithTokenDto })
     @ApiResponse({ status: 400, description: 'Invalid data provided or email already exists' })
     @ApiBody({ type: UserBody })
+    @MessagePattern({ cmd: 'auth.signUp' })
     @Post('signUp')
     async signUp(@Body() body: UserBody) {
         return this.authService.signUp(body);
-    }
-
-    @MessagePattern({ cmd: 'auth.signUp' })
-    signUpTcp(@Payload(new RpcValidationPipe()) data: UserBody) {
-        return this.authService.signUp(data);
     }
 
     /* Sign In */
@@ -40,14 +35,10 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Invalid credentials' })
     @ApiResponse({ status: 404, description: 'User not found' })
     @ApiBody({ type: UserSignInBody })
+    @MessagePattern({ cmd: 'auth.signIn' })
     @Post('signIn')
     async signIn(@Body() body: UserSignInBody) {
         return this.authService.signIn(body);
-    }
-
-    @MessagePattern({ cmd: 'auth.signIn' })
-    signInTcp(@Payload(new RpcValidationPipe()) data: UserSignInBody) {
-        return this.authService.signIn(data);
     }
 
     /* Refresh Token */
@@ -62,13 +53,10 @@ export class AuthController {
     })
     @ApiResponse({ status: 200, description: 'Token successfully refreshed', type: UserWithTokenDto })
     @ApiResponse({ status: 403, description: 'Invalid or expired refresh token' })
+    @MessagePattern({ cmd: 'auth.refreshToken' })
     @Get('refreshToken/:refreshToken')
     async refreshToken(@Param('refreshToken') refreshToken: string) {
         return this.authService.refreshToken(refreshToken);
     }
 
-    @MessagePattern({ cmd: 'auth.refreshToken' })
-    refreshTokenTcp(@Payload(new RpcValidationPipe()) data: string) {
-        return this.authService.refreshToken(data);
-    }
 }
