@@ -1,18 +1,16 @@
+import { AuthEventType, SetRefreshTokenDto, TokensDto, UserDto, UserSignInBody } from '@bato-urbanflow/urbanflow-models';
 import { BadRequestException, ForbiddenException, Inject, Injectable } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
-import { JwtTokensDto } from "../objects/dtos/jwt-tokens.dto";
-import { SetRefreshTokenDto } from "../objects/dtos/set-refresh-token.dto";
-import { UserSignInBody } from "../objects/dtos/user-signin.body";
-import { UserDto } from "../objects/dtos/user.dto";
-import { AuthEventType } from "../objects/enums/auth-event.enum";
+import { LogsService } from "./log.service";
 
 @Injectable()
 export class AuthService {
 
     constructor(
         private jwtService: JwtService,
+        private logsService: LogsService,
         @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
     ) { }
 
@@ -102,7 +100,7 @@ export class AuthService {
         }
     }
 
-    async generateTokenAndRefreshToken(user: UserDto): Promise<JwtTokensDto> {
+    async generateTokenAndRefreshToken(user: UserDto): Promise<TokensDto> {
         const payload = { sub: user.id };
 
         const accessToken = await this.jwtService.signAsync(payload, {
@@ -112,7 +110,7 @@ export class AuthService {
             expiresIn: "30d"
         });
 
-        return new JwtTokensDto(accessToken, refreshToken)
+        return new TokensDto(accessToken, refreshToken)
     }
 
     generateUserWithToken(user: UserDto, tokens: { accessToken: string, refreshToken: string }): UserDto {

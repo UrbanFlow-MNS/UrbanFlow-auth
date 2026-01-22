@@ -1,6 +1,5 @@
 import { Inject } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
-import { RMQEventType } from "../objects/enums/rmq-event.enum";
 
 export class LogsService {
 
@@ -8,7 +7,7 @@ export class LogsService {
         @Inject('LOGS_SERVICE') private readonly client: ClientProxy
     ) { }
 
-    sendEvent(event: RMQEventType, content: any) {
+    sendEvent(event: string, content: any) {
         this.client.emit(event, content);
     }
 
