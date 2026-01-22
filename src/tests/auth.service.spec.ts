@@ -4,9 +4,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { Repository } from 'typeorm';
-import { AuthService } from '../auth.service';
 import { UserEntity } from '../objects/entities/user.entity';
 import { UserRoleType } from '../objects/enums/user-role.enum';
+import { AuthService } from '../services/auth.service';
 import { LogsService } from '../services/log.service';
 
 // Mock de argon2
