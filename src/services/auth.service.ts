@@ -3,21 +3,24 @@ import { BadRequestException, ForbiddenException, Inject, Injectable } from "@ne
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
+import { IAuthService } from '../interfaces/IAuthService';
 import { LogsService } from "./log.service";
 
 @Injectable()
-export class AuthService {
+export class AuthService implements IAuthService {
 
     constructor(
-        private jwtService: JwtService,
-        private logsService: LogsService,
+        private readonly jwtService: JwtService,
+        private readonly logsService: LogsService,
         @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
     ) { }
 
     async signUp(body: UserSignInBody): Promise<UserDto> {
         const user: UserDto = await this.fetchOneUserByEmail(body.email)
 
-        if (!user) {
+        if (user) {
+            throw new BadRequestException('User already exist')
+        } else {
             const createdUser: UserDto = await this.createUser(body)
 
             if (createdUser) {
@@ -26,8 +29,6 @@ export class AuthService {
             } else {
                 throw new BadRequestException('Fail to create')
             }
-        } else {
-            throw new BadRequestException('User already exist')
         }
     }
 
@@ -57,7 +58,7 @@ export class AuthService {
             }
 
             return await this.setTokens(user);
-        } catch (e) {
+        } catch {
             throw new ForbiddenException("Invalid refresh token");
         }
     }
@@ -87,8 +88,8 @@ export class AuthService {
         );
     }
 
-    // MARK - Utils
-    async setTokens(user: UserDto): Promise<UserDto> {
+    // MARK - Private logic
+    private async setTokens(user: UserDto): Promise<UserDto> {
         if (user.id) {
             const tokens = await this.generateTokenAndRefreshToken(user)
             const dto = new SetRefreshTokenDto(user.id, tokens.refreshToken)
@@ -113,11 +114,4 @@ export class AuthService {
         return new TokensDto(accessToken, refreshToken)
     }
 
-    generateUserWithToken(user: UserDto, tokens: { accessToken: string, refreshToken: string }): UserDto {
-        const userResponse = user
-        userResponse.accessToken = tokens.accessToken
-        userResponse.refreshToken = tokens.refreshToken
-
-        return userResponse;
-    }
 }
