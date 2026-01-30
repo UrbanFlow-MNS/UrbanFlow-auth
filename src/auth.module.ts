@@ -22,6 +22,15 @@ import { LogsService } from './services/log.service';
                 },
             },
             {
+                name: 'NOTIFICATIONS_SERVICE',
+                transport: Transport.RMQ,
+                options: {
+                    urls: [process.env.RABBIT_MQ ?? ''],
+                    queue: 'NOTIFICATIONS_QUEUE',
+                    queueOptions: { durable: false },
+                },
+            },
+            {
                 name: 'USER_SERVICE',
                 transport: Transport.TCP,
                 options: {
