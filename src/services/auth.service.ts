@@ -6,6 +6,13 @@ import { firstValueFrom } from "rxjs";
 import { IAuthService } from '../interfaces/IAuthService';
 import { LogsService } from "./log.service";
 
+// TODO: Change place
+export class SendEmailBody {
+    email: string
+    object: string
+    body: string
+}
+
 @Injectable()
 export class AuthService implements IAuthService {
 
@@ -13,6 +20,7 @@ export class AuthService implements IAuthService {
         private readonly jwtService: JwtService,
         private readonly logsService: LogsService,
         @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
+        @Inject('NOTIFICATIONS_SERVICE') private readonly notificationClient: ClientProxy
     ) { }
 
     async signUp(body: UserSignInBody): Promise<UserDto> {
@@ -61,6 +69,10 @@ export class AuthService implements IAuthService {
         } catch {
             throw new ForbiddenException("Invalid refresh token");
         }
+    }
+
+    async forgotPassword(email: string) {
+        this.notificationClient.emit("notifications.sendEmail", { })
     }
 
     // MARK - Utils TCP
