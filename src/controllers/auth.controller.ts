@@ -4,7 +4,6 @@ import { MessagePattern } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 
-
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -52,9 +51,32 @@ export class AuthController {
     @ApiResponse({ status: 200, description: 'Token successfully refreshed', type: UserDto })
     @ApiResponse({ status: 403, description: 'Invalid or expired refresh token' })
     @MessagePattern({ cmd: 'auth.refreshToken' })
-    @Get('refreshToken/:refreshToken')
+    @Get('refresh-token/:refreshToken')
     async refreshToken(@Param('refreshToken') refreshToken: string) {
         return this.authService.refreshToken(refreshToken);
+    }
+
+    /* Forgot password */
+    @ApiOperation({
+        summary: 'Forgot password',
+        description: 'Sends a password recovery email if the email address exists in our system'
+    })
+    @ApiParam({
+        name: 'email',
+        description: 'The user\'s email address',
+        example: 'theo@example.com'
+    })
+    @ApiResponse({ 
+        status: 200, 
+        description: 'If the email exists, a reset link has been sent successfully' 
+    })
+    @ApiResponse({ 
+        status: 400, 
+        description: 'Invalid email format' 
+    })
+    @Post("forgot-password/:email")
+    async forgotPassword(@Param('email') email: string) {
+        return this.authService.forgotPassword(email)
     }
 
 }

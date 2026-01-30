@@ -4,14 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 import { IAuthService } from '../interfaces/IAuthService';
+import { SendEmailBody } from '../objects/send-email.body';
 import { LogsService } from "./log.service";
-
-// TODO: Change place
-export class SendEmailBody {
-    email: string
-    object: string
-    body: string
-}
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -72,7 +66,26 @@ export class AuthService implements IAuthService {
     }
 
     async forgotPassword(email: string) {
-        this.notificationClient.emit("notifications.sendEmail", { })
+        const resetToken = await this.jwtService.signAsync({ email }, { expiresIn: "15m" })
+        const resetLink = `https://urbanflow.lazyy.fr/reset-password?token=${resetToken}`;
+
+        const emailContent = `Bonjour,
+
+Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte. 
+Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. 
+
+${resetLink}
+
+Ce lien expirera dans 15 minutes.
+
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.`;
+
+        const body = new SendEmailBody();
+        body.email = email;
+        body.object = "Réinitialisation de votre mot de passe";
+        body.body = emailContent;
+
+        this.notificationClient.emit("notifications.sendEmail", body);
     }
 
     // MARK - Utils TCP
