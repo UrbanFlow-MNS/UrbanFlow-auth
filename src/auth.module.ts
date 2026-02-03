@@ -4,6 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { LogsService } from './services/log.service';
+import { AuthUtils } from './utils/auth.utils';
 
 @Module({
     imports: [
@@ -35,12 +36,12 @@ import { LogsService } from './services/log.service';
                 transport: Transport.TCP,
                 options: {
                     host: process.env.USER_SERVICE_HOST || '',
-                    port: parseInt(process.env.USER_SERVICE_TCP_PORT || ''),
+                    port: Number.parseInt(process.env.USER_SERVICE_TCP_PORT || ''),
                 },
             }
         ])
     ],
     controllers: [AuthController],
-    providers: [AuthService, LogsService],
+    providers: [AuthService, LogsService, AuthUtils],
 })
 export class AuthModule { }
