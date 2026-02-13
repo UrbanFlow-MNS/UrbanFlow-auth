@@ -2,8 +2,8 @@ import { UserDto, UserSignInBody } from '@bato-urbanflow/urbanflow-models';
 import { BadRequestException, ForbiddenException, Inject, Injectable } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy, RpcException } from "@nestjs/microservices";
-import { IAuthService } from '../interfaces/IAuthService';
-import { SendEmailBody } from '../objects/send-email.body';
+import { IAuthService} from '../interfaces/auth-service.interface';
+import { SendEmailDto } from '../objects/send-email.dto';
 import { AuthUtils } from '../utils/auth.utils';
 import { LogsService } from "./log.service";
 
@@ -28,6 +28,7 @@ export class AuthService implements IAuthService {
 
             if (createdUser) {
                 const userWithTokens = await this.authUtils.setTokens(createdUser)
+                this.logsService.sendUserConnectedEvent(createdUser.email ?? "")
                 return userWithTokens
             } else {
                 throw new BadRequestException('Fail to create')
@@ -40,6 +41,7 @@ export class AuthService implements IAuthService {
         const isCredentialsValid = await this.authUtils.fetchCheckCredentials(body.email, body.password)
         if (user && isCredentialsValid) {
             const userWithTokens = await this.authUtils.setTokens(user)
+            this.logsService.sendUserConnectedEvent(user.email ?? "")
             return userWithTokens
         } else {
             throw new RpcException(
@@ -68,7 +70,7 @@ export class AuthService implements IAuthService {
         }
     }
 
-    async forgotPassword(email: string) {
+    async forgotPassword(email: string): Promise<void> {
         const resetToken = await this.jwtService.signAsync({ email }, { expiresIn: "15m" })
         const resetLink = `https://urbanflow.lazyy.fr/reset-password?token=${resetToken}`;
 
@@ -83,7 +85,7 @@ Ce lien expirera dans 15 minutes.
 
 Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.`;
 
-        const body = new SendEmailBody();
+        const body = new SendEmailDto();
         body.email = email;
         body.object = "Réinitialisation de votre mot de passe";
         body.body = emailContent;

@@ -5,6 +5,7 @@ import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { LogsService } from './services/log.service';
 import { AuthUtils } from './utils/auth.utils';
+import {AppConstants} from "./core/contants";
 
 @Module({
     imports: [
@@ -42,6 +43,10 @@ import { AuthUtils } from './utils/auth.utils';
         ])
     ],
     controllers: [AuthController],
-    providers: [AuthService, LogsService, AuthUtils],
+    providers: [
+        LogsService,
+        AuthUtils,
+        { provide: AppConstants.IAUTH_SERVICE, useClass: AuthService }
+    ],
 })
 export class AuthModule { }
