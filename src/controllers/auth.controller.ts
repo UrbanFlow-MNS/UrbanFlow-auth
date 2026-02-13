@@ -1,13 +1,14 @@
 import { UserDto, UserSignInBody, UserSignUpBody } from '@bato-urbanflow/urbanflow-models';
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {Body, Controller, Get, Inject, Param, Post} from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthService } from '../services/auth.service';
+import {IAuthService} from "../interfaces/auth-service.interface";
+import {AppConstants} from "../core/contants";
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+    constructor(@Inject(AppConstants.IAUTH_SERVICE) private readonly authService: IAuthService) { }
 
     /* Sign up */
     @ApiOperation({
