@@ -75,6 +75,7 @@ export class AuthController {
         status: 400, 
         description: 'Invalid email format' 
     })
+    @MessagePattern({ cmd: 'auth.forgotPassword' })
     @Post("forgot-password/:email")
     async forgotPassword(@Param('email') email: string) {
         return this.authService.forgotPassword(email)

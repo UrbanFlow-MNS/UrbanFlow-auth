@@ -1,5 +1,5 @@
 import { UserDto, UserSignInBody } from '@bato-urbanflow/urbanflow-models';
-import { BadRequestException, ForbiddenException, Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy, RpcException } from "@nestjs/microservices";
 import { IAuthService} from '../interfaces/auth-service.interface';
@@ -22,32 +22,36 @@ export class AuthService implements IAuthService {
         const user: UserDto = await this.authUtils.fetchOneUserByEmail(body.email)
 
         if (user) {
-            throw new BadRequestException('User already exist')
-        } else {
-            const createdUser: UserDto = await this.authUtils.createUser(body)
-
-            if (createdUser) {
-                const userWithTokens = await this.authUtils.setTokens(createdUser)
-                this.logsService.sendUserConnectedEvent(createdUser.email ?? "")
-                return userWithTokens
-            } else {
-                throw new BadRequestException('Fail to create')
-            }
+            throw new RpcException({ statusCode: 400, message: 'User already exist' })
         }
+
+        const createdUser: UserDto = await this.authUtils.createUser(body)
+
+        if (!createdUser) {
+            throw new RpcException({ statusCode: 400, message: 'Fail to create' })
+        }
+
+        const userWithTokens = await this.authUtils.setTokens(createdUser)
+        this.logsService.sendUserConnectedEvent(createdUser.email ?? "")
+        return userWithTokens
     }
 
     async signIn(body: UserSignInBody) {
         const user: UserDto = await this.authUtils.fetchOneUserByEmail(body.email)
-        const isCredentialsValid = await this.authUtils.fetchCheckCredentials(body.email, body.password)
-        if (user && isCredentialsValid) {
-            const userWithTokens = await this.authUtils.setTokens(user)
-            this.logsService.sendUserConnectedEvent(user.email ?? "")
-            return userWithTokens
-        } else {
-            throw new RpcException(
-                new BadRequestException('Issue with sign in')
-            )
+
+        if (!user) {
+            throw new RpcException({ statusCode: 404, message: 'User not found' })
         }
+
+        const isCredentialsValid = await this.authUtils.fetchCheckCredentials(body.email, body.password)
+
+        if (!isCredentialsValid) {
+            throw new RpcException({ statusCode: 401, message: 'Invalid credentials' })
+        }
+
+        const userWithTokens = await this.authUtils.setTokens(user)
+        this.logsService.sendUserConnectedEvent(user.email ?? "")
+        return userWithTokens
     }
 
     async refreshToken(token: string) {
@@ -55,22 +59,22 @@ export class AuthService implements IAuthService {
             const decoded = await this.jwtService.verifyAsync(token);
 
             if (!decoded?.sub) {
-                throw new ForbiddenException("Invalid token");
+                throw new Error("Invalid token");
             }
 
             const user = await this.authUtils.fetchOneUserById(decoded.sub);
 
             if (!user || user.refreshToken !== token) {
-                throw new ForbiddenException("Access denied");
+                throw new Error("Access denied");
             }
 
             return await this.authUtils.setTokens(user);
         } catch {
-            throw new ForbiddenException("Invalid refresh token");
+            throw new RpcException({ statusCode: 403, message: 'Invalid refresh token' });
         }
     }
 
-    async forgotPassword(email: string): Promise<void> {
+    async forgotPassword(email: string): Promise<{ message: string }> {
         const resetToken = await this.jwtService.signAsync({ email }, { expiresIn: "15m" })
         const resetLink = `https://urbanflow.lazyy.fr/reset-password?token=${resetToken}`;
 
@@ -91,6 +95,7 @@ Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email
         body.body = emailContent;
 
         this.notificationClient.emit("notifications.sendEmail", body);
+        return { message: 'If this email exists, a reset link has been sent' };
     }
 
 }
