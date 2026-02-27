@@ -1,7 +1,7 @@
 import { AuthEventType, SetRefreshTokenDto, TokensDto, UserDto, UserSignInBody } from "@bato-urbanflow/urbanflow-models";
-import { BadRequestException, Inject } from "@nestjs/common";
+import { Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { ClientProxy } from "@nestjs/microservices";
+import { ClientProxy, RpcException } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 
 export class AuthUtils {
@@ -50,7 +50,7 @@ export class AuthUtils {
             updatedUser.accessToken = tokens.accessToken
             return updatedUser
         } else {
-            throw new BadRequestException('No user id')
+            throw new RpcException({ statusCode: 400, message: 'No user id' })
         }
     }
 
