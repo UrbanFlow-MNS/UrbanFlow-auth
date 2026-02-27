@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AuthController } from './controllers/auth.controller';
+import { AppConstants } from "./core/contants";
 import { AuthService } from './services/auth.service';
 import { LogsService } from './services/log.service';
 import { AuthUtils } from './utils/auth.utils';
-import {AppConstants} from "./core/contants";
 
 @Module({
     imports: [
