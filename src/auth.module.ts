@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AuthController } from './controllers/auth.controller';
+import { PrometheusController } from './controllers/prometheus.controller';
 import { AppConstants } from "./core/contants";
 import { AuthService } from './services/auth.service';
 import { LogsService } from './services/log.service';
+import { PrometheusService } from './services/prometheus.service';
 import { AuthUtils } from './utils/auth.utils';
 
 @Module({
@@ -42,11 +44,13 @@ import { AuthUtils } from './utils/auth.utils';
             }
         ])
     ],
-    controllers: [AuthController],
+    controllers: [AuthController, PrometheusController],
     providers: [
         LogsService,
         AuthUtils,
-        { provide: AppConstants.IAUTH_SERVICE, useClass: AuthService }
+        { provide: AppConstants.IAUTH_SERVICE, useClass: AuthService },
+        PrometheusService,
+        { provide: 'IPrometheusService', useClass: PrometheusService },
     ],
 })
 export class AuthModule { }
