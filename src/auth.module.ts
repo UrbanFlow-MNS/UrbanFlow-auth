@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AuthController } from './controllers/auth.controller';
@@ -11,9 +12,14 @@ import { AuthUtils } from './utils/auth.utils';
 
 @Module({
     imports: [
-        JwtModule.register({
+        ConfigModule.forRoot({ isGlobal: true }),
+        JwtModule.registerAsync({
             global: true,
-            secret: process.env.JWT_SECRET
+            imports: [ConfigModule],
+            useFactory: (config: ConfigService) => ({
+                secret: config.get<string>('JWT_SECRET'),
+            }),
+            inject: [ConfigService],
         }),
         ClientsModule.register([
             {
