@@ -55,7 +55,7 @@ export class AuthUtils {
     }
 
     async generateTokenAndRefreshToken(user: UserDto): Promise<TokensDto> {
-        const payload = { sub: user.id };
+        const payload = { sub: user.id, role: user.role };
 
         const accessToken = await this.jwtService.signAsync(payload, { expiresIn: "1h" });
         const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: "30d" });
