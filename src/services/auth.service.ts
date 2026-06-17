@@ -76,7 +76,7 @@ export class AuthService implements IAuthService {
 
     async forgotPassword(email: string): Promise<{ message: string }> {
         const resetToken = await this.jwtService.signAsync({ email }, { expiresIn: "15m" })
-        const resetLink = `https://urbanflow.lazyy.fr/reset-password?token=${resetToken}`;
+        const resetLink = `https://auth.urbanflow.lazyy.fr/reset-password?token=${resetToken}`;
 
         const emailContent = `Bonjour,
 
