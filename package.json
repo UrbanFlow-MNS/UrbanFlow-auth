@@ -20,7 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@bato-urbanflow/urbanflow-models": "^1.0.3",
+    "@bato-urbanflow/urbanflow-models": "^1.0.12",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",

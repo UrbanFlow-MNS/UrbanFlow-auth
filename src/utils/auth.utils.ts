@@ -2,7 +2,7 @@ import { AuthEventType, SetRefreshTokenDto, TokensDto, UserDto, UserSignInBody }
 import { Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ClientProxy, RpcException } from "@nestjs/microservices";
-import { firstValueFrom } from "rxjs";
+import { catchError, firstValueFrom, throwError } from "rxjs";
 
 export class AuthUtils {
 
@@ -32,7 +32,9 @@ export class AuthUtils {
 
     async createUser(body: UserSignInBody): Promise<UserDto> {
         return await firstValueFrom(
-            this.userClient.send({ cmd: AuthEventType.NEED_USER_CREATION }, body)
+            this.userClient.send({ cmd: AuthEventType.NEED_USER_CREATION }, body).pipe(
+                catchError(err => throwError(() => new RpcException(err)))
+            )
         );
     }
 
