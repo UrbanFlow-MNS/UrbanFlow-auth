@@ -6,7 +6,7 @@ import { IAuthService } from "../interfaces/auth-service.interface";
 import { SendEmailDto } from "../objects/send-email.dto";
 import { LogsService } from "../logs/log.service";
 import { firstValueFrom } from "rxjs";
-import { UserDtoGrpc, UserServiceClient, USER_SERVICE_NAME } from "../../../proto/generated/typescript/user";
+import { UserDtoGrpc, UserRoleType, UserServiceClient, USER_SERVICE_NAME } from "../../../proto/generated/typescript/user";
 
 @Injectable()
 export class AuthService implements IAuthService {
@@ -37,6 +37,8 @@ export class AuthService implements IAuthService {
                 lastName: body.lastName,
                 email: body.email,
                 password: body.password,
+                role: body.role as unknown as UserRoleType,
+                agencyId: body.agencyId,
             }),
         );
         if (!created?.id) {
