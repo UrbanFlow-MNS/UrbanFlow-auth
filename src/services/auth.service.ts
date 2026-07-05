@@ -4,7 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { ClientGrpc, ClientProxy, RpcException } from "@nestjs/microservices";
 import { IAuthService } from "../interfaces/auth-service.interface";
 import { SendEmailDto } from "../objects/send-email.dto";
-import { LogsService } from "../logs/log.service";
+import { LogsService } from "../logs-service/log.service";
 import { firstValueFrom } from "rxjs";
 import { UserDtoGrpc, UserRoleType, UserServiceClient, USER_SERVICE_NAME } from "../../../proto/generated/typescript/user";
 

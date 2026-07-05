@@ -8,7 +8,7 @@ import { AppConstants } from "./core/contants";
 import { AuthService } from "./services/auth.service";
 import { PrometheusService } from "./services/prometheus.service";
 import { UserGrpcModule } from "../../shared/nestjs/user/user-grpc.module";
-import { LogsModule } from "./logs/log.module";
+import { LogsModule } from "./logs-service/log.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 
 @Module({

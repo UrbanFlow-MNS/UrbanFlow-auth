@@ -7,7 +7,7 @@ import { Repository } from 'typeorm';
 import { UserEntity } from '../objects/entities/user.entity';
 import { UserRoleType } from '../objects/enums/user-role.enum';
 import { AuthService } from '../services/auth.service';
-import { LogsService } from '../logs/log.service';
+import { LogsService } from '../logs-service/log.service';
 
 // Mock de argon2
 jest.mock('argon2');
