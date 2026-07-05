@@ -1,6 +1,6 @@
 import { UserDto, UserSignInBody, UserSignUpBody } from '@bato-urbanflow/urbanflow-models';
 import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AppConstants } from "../core/contants";
 import { IAuthService } from "../interfaces/auth-service.interface";
@@ -52,8 +52,7 @@ export class AuthController {
     @ApiResponse({ status: 200, description: 'Token successfully refreshed', type: UserDto })
     @ApiResponse({ status: 403, description: 'Invalid or expired refresh token' })
     @MessagePattern({ cmd: 'auth.refreshToken' })
-    @Get('refresh-token/:refreshToken')
-    async refreshToken(@Param('refreshToken') refreshToken: string) {
+    async refreshToken(@Payload() refreshToken: string) {
         return this.authService.refreshToken(refreshToken);
     }
 
