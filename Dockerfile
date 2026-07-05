@@ -1,24 +1,24 @@
-# Stage 1 — build
 FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --no-audit --no-fund
-COPY . .
-RUN npm run build
+WORKDIR /build
 
-# Stage 2 — production deps only
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev --no-audit --no-fund
+COPY modules/proto/ ./proto/
+COPY modules/shared/ ./shared/
 
-# Stage 3 — runtime
+COPY modules/auth/package*.json ./auth/
+RUN cd auth && npm ci --no-audit --no-fund
+
+COPY modules/auth/ ./auth/
+RUN cd auth && npm run build
+
 FROM node:20-alpine
-ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
 
+COPY modules/auth/package*.json ./auth/
+RUN cd auth && npm ci --omit=dev --no-audit --no-fund
+
+COPY --from=builder /build/auth/dist ./auth/dist
+COPY --from=builder /build/proto ./auth/dist/proto
+
+WORKDIR /app/auth
 EXPOSE 4001
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/auth/src/main.js"]
