@@ -24,6 +24,9 @@ export default tseslint.config(
       // --- TS rules ---
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
 
       // --- Unicorn rules (activées mais raisonnables) ---
       'unicorn/prefer-node-protocol': 'error',

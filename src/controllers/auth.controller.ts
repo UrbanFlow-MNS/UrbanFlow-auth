@@ -15,7 +15,7 @@ export class AuthController {
         summary: 'User registration',
         description: 'Create a new user account with email, password, and personal information'
     })
-    @ApiResponse({ status: 201, description: 'User successfully created and logged in', type: UserDto })
+    @ApiResponse({ status: 201, description: 'User successfully created and logged in', type: Object })
     @ApiResponse({ status: 400, description: 'Invalid data provided or email already exists' })
     @ApiBody({ type: UserSignUpBody })
     @MessagePattern({ cmd: 'auth.signUp' })
