@@ -1,6 +1,7 @@
 services:
   user-database:
     image: postgres:15
+    restart: always
     env_file:
       - .env
     ports:
@@ -10,6 +11,7 @@ services:
 
   auth-service:
     build: .
+    restart: always
     ports:
       - "4001:4001"
     env_file:
