@@ -3,10 +3,11 @@ import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { ClientGrpc, ClientProxy, RpcException } from "@nestjs/microservices";
+import { Metadata } from "@grpc/grpc-js";
 import { IAuthService } from "../interfaces/auth-service.interface";
 import { SendEmailDto } from "../objects/send-email.dto";
 import { LogsService } from "../logs-service/log.service";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, Observable } from "rxjs";
 import * as argon2 from "argon2";
 import { UserDtoGrpc, UserRoleType, UserServiceClient, USER_SERVICE_NAME } from "../../../proto/generated/typescript/user";
 
@@ -26,16 +27,27 @@ export class AuthService implements IAuthService {
         this.userService = this.userClient.getService<UserServiceClient>(USER_SERVICE_NAME);
     }
 
+    private userMeta(): Metadata {
+        const meta = new Metadata();
+        meta.add("x-internal-secret", process.env.USER_INTERNAL_SECRET ?? "");
+        return meta;
+    }
+
+    private callUser<T>(method: keyof UserServiceClient, request: unknown): Observable<T> {
+        const fn = this.userService[method] as unknown as (req: unknown, meta: Metadata) => Observable<T>;
+        return fn.call(this.userService, request, this.userMeta());
+    }
+
     async signUp(body: UserSignUpBody): Promise<UserDtoGrpc> {
         const existing = await firstValueFrom(
-            this.userService.findOneByEmail({ email: body.email })
+            this.callUser<{ user?: UserDtoGrpc }>("findOneByEmail", { email: body.email })
         );
         if (existing?.user) {
             throw new RpcException({ statusCode: 400, message: "Fail to create" });
         }
 
         const created = await firstValueFrom(
-            this.userService.createUser({
+            this.callUser<UserDtoGrpc>("createUser", {
                 firstName: body.firstName,
                 lastName: body.lastName,
                 email: body.email,
@@ -55,7 +67,7 @@ export class AuthService implements IAuthService {
 
     async signIn(body: UserSignInBody): Promise<UserDtoGrpc> {
         const res = await firstValueFrom(
-            this.userService.checkUserCredentials({ email: body.email, password: body.password })
+            this.callUser<{ user?: UserDtoGrpc }>("checkUserCredentials", { email: body.email, password: body.password })
         );
         if (!res?.user) {
             throw new RpcException({ statusCode: 401, message: "Invalid credentials" });
@@ -76,7 +88,7 @@ export class AuthService implements IAuthService {
             if (decoded.typ !== "refresh") throw new Error("Wrong token type");
 
             const res = await firstValueFrom(
-                this.userService.findOneById({ id: decoded.sub })
+                this.callUser<{ user?: UserDtoGrpc }>("findOneById", { id: decoded.sub })
             );
             if (!res?.user || !res.user.refreshToken) {
                 throw new Error("Access denied");
@@ -113,7 +125,7 @@ export class AuthService implements IAuthService {
         const hashedRefreshToken = await this.hashRefreshToken(refreshToken);
 
         const updated = await firstValueFrom(
-            this.userService.setRefreshToken({ userId, refreshToken: hashedRefreshToken })
+            this.callUser<UserDtoGrpc>("setRefreshToken", { userId, refreshToken: hashedRefreshToken })
         );
 
         return { ...updated, accessToken, refreshToken };
