@@ -6,6 +6,7 @@ import { IAuthService } from "../interfaces/auth-service.interface";
 import { SendEmailDto } from "../objects/send-email.dto";
 import { LogsService } from "../logs-service/log.service";
 import { firstValueFrom } from "rxjs";
+import * as argon2 from "argon2";
 import { UserDtoGrpc, UserRoleType, UserServiceClient, USER_SERVICE_NAME } from "../../../proto/generated/typescript/user";
 
 @Injectable()
@@ -71,7 +72,12 @@ export class AuthService implements IAuthService {
             const res = await firstValueFrom(
                 this.userService.findOneById({ id: decoded.sub })
             );
-            if (!res?.user || res.user.refreshToken !== token) {
+            if (!res?.user || !res.user.refreshToken) {
+                throw new Error("Access denied");
+            }
+
+            const valid = await argon2.verify(res.user.refreshToken, token);
+            if (!valid) {
                 throw new Error("Access denied");
             }
 
@@ -85,12 +91,22 @@ export class AuthService implements IAuthService {
         const payload = { sub: userId, role };
         const accessToken = await this.jwtService.signAsync(payload, { expiresIn: "1h" });
         const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: "30d" });
+        const hashedRefreshToken = await this.hashRefreshToken(refreshToken);
 
         const updated = await firstValueFrom(
-            this.userService.setRefreshToken({ userId, refreshToken })
+            this.userService.setRefreshToken({ userId, refreshToken: hashedRefreshToken })
         );
 
-        return { ...updated, accessToken };
+        return { ...updated, accessToken, refreshToken };
+    }
+
+    private hashRefreshToken(token: string): Promise<string> {
+        return argon2.hash(token, {
+            type: argon2.argon2id,
+            memoryCost: 19456,
+            timeCost: 2,
+            parallelism: 1,
+        });
     }
 
     async forgotPassword(email: string): Promise<{ message: string }> {
