@@ -1,11 +1,14 @@
 import { UserSignInBody, UserSignUpBody } from "@bato-urbanflow/urbanflow-models";
 import { Inject, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { ClientGrpc, ClientProxy, RpcException } from "@nestjs/microservices";
+import { Metadata } from "@grpc/grpc-js";
 import { IAuthService } from "../interfaces/auth-service.interface";
 import { SendEmailDto } from "../objects/send-email.dto";
 import { LogsService } from "../logs-service/log.service";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, Observable } from "rxjs";
+import * as argon2 from "argon2";
 import { UserDtoGrpc, UserRoleType, UserServiceClient, USER_SERVICE_NAME } from "../../../proto/generated/typescript/user";
 
 @Injectable()
@@ -14,6 +17,7 @@ export class AuthService implements IAuthService {
 
     constructor(
         private readonly jwtService: JwtService,
+        private readonly configService: ConfigService,
         private readonly logsService: LogsService,
         @Inject("NOTIFICATIONS_SERVICE") private readonly notificationClient: ClientProxy,
         @Inject("USER_PACKAGE") private readonly userClient: ClientGrpc,
@@ -23,16 +27,27 @@ export class AuthService implements IAuthService {
         this.userService = this.userClient.getService<UserServiceClient>(USER_SERVICE_NAME);
     }
 
+    private userMeta(): Metadata {
+        const meta = new Metadata();
+        meta.add("x-internal-secret", process.env.USER_INTERNAL_SECRET ?? "");
+        return meta;
+    }
+
+    private callUser<T>(method: keyof UserServiceClient, request: unknown): Observable<T> {
+        const fn = this.userService[method] as unknown as (req: unknown, meta: Metadata) => Observable<T>;
+        return fn.call(this.userService, request, this.userMeta());
+    }
+
     async signUp(body: UserSignUpBody): Promise<UserDtoGrpc> {
         const existing = await firstValueFrom(
-            this.userService.findOneByEmail({ email: body.email })
+            this.callUser<{ user?: UserDtoGrpc }>("findOneByEmail", { email: body.email })
         );
         if (existing?.user) {
             throw new RpcException({ statusCode: 400, message: "Fail to create" });
         }
 
         const created = await firstValueFrom(
-            this.userService.createUser({
+            this.callUser<UserDtoGrpc>("createUser", {
                 firstName: body.firstName,
                 lastName: body.lastName,
                 email: body.email,
@@ -52,7 +67,7 @@ export class AuthService implements IAuthService {
 
     async signIn(body: UserSignInBody): Promise<UserDtoGrpc> {
         const res = await firstValueFrom(
-            this.userService.checkUserCredentials({ email: body.email, password: body.password })
+            this.callUser<{ user?: UserDtoGrpc }>("checkUserCredentials", { email: body.email, password: body.password })
         );
         if (!res?.user) {
             throw new RpcException({ statusCode: 401, message: "Invalid credentials" });
@@ -65,13 +80,22 @@ export class AuthService implements IAuthService {
 
     async refreshToken(token: string): Promise<UserDtoGrpc> {
         try {
-            const decoded = await this.jwtService.verifyAsync(token);
+            const decoded = await this.jwtService.verifyAsync(token, {
+                secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
+                algorithms: ["HS256"],
+            });
             if (!decoded?.sub) throw new Error("Invalid token");
+            if (decoded.typ !== "refresh") throw new Error("Wrong token type");
 
             const res = await firstValueFrom(
-                this.userService.findOneById({ id: decoded.sub })
+                this.callUser<{ user?: UserDtoGrpc }>("findOneById", { id: decoded.sub })
             );
-            if (!res?.user || res.user.refreshToken !== token) {
+            if (!res?.user || !res.user.refreshToken) {
+                throw new Error("Access denied");
+            }
+
+            const valid = await argon2.verify(res.user.refreshToken, token);
+            if (!valid) {
                 throw new Error("Access denied");
             }
 
@@ -82,15 +106,38 @@ export class AuthService implements IAuthService {
     }
 
     private async userWithTokens(userId: number, role: string): Promise<UserDtoGrpc> {
-        const payload = { sub: userId, role };
-        const accessToken = await this.jwtService.signAsync(payload, { expiresIn: "1h" });
-        const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: "30d" });
+        const accessToken = await this.jwtService.signAsync(
+            { sub: userId, role, typ: "access" },
+            {
+                secret: this.configService.get<string>("JWT_SECRET"),
+                algorithm: "HS256",
+                expiresIn: "1h",
+            },
+        );
+        const refreshToken = await this.jwtService.signAsync(
+            { sub: userId, role, typ: "refresh" },
+            {
+                secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
+                algorithm: "HS256",
+                expiresIn: "30d",
+            },
+        );
+        const hashedRefreshToken = await this.hashRefreshToken(refreshToken);
 
         const updated = await firstValueFrom(
-            this.userService.setRefreshToken({ userId, refreshToken })
+            this.callUser<UserDtoGrpc>("setRefreshToken", { userId, refreshToken: hashedRefreshToken })
         );
 
-        return { ...updated, accessToken };
+        return { ...updated, accessToken, refreshToken };
+    }
+
+    private hashRefreshToken(token: string): Promise<string> {
+        return argon2.hash(token, {
+            type: argon2.argon2id,
+            memoryCost: 19456,
+            timeCost: 2,
+            parallelism: 1,
+        });
     }
 
     async forgotPassword(email: string): Promise<{ message: string }> {

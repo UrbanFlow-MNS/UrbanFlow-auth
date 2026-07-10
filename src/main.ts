@@ -5,6 +5,29 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AuthModule } from './auth.module';
 
 async function bootstrap() {
+    const authInternalSecret = process.env.AUTH_INTERNAL_SECRET;
+    if (!authInternalSecret) {
+        throw new Error("AUTH_INTERNAL_SECRET is not defined.");
+    }
+
+    const userInternalSecret = process.env.USER_INTERNAL_SECRET;
+    if (!userInternalSecret) {
+        throw new Error("USER_INTERNAL_SECRET is not defined.");
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+        throw new Error("JWT_SECRET is not defined.");
+    }
+
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+    if (!jwtRefreshSecret) {
+        throw new Error("JWT_REFRESH_SECRET is not defined.");
+    }
+    if (jwtRefreshSecret === jwtSecret) {
+        throw new Error("JWT_REFRESH_SECRET must be different from JWT_SECRET.");
+    }
+
     const app = await NestFactory.create(AuthModule);
 
     const config = new DocumentBuilder()
