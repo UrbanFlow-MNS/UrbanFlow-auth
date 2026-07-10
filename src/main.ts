@@ -10,6 +10,19 @@ async function bootstrap() {
         throw new Error("AUTH_INTERNAL_SECRET is not defined.");
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+        throw new Error("JWT_SECRET is not defined.");
+    }
+
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+    if (!jwtRefreshSecret) {
+        throw new Error("JWT_REFRESH_SECRET is not defined.");
+    }
+    if (jwtRefreshSecret === jwtSecret) {
+        throw new Error("JWT_REFRESH_SECRET must be different from JWT_SECRET.");
+    }
+
     const app = await NestFactory.create(AuthModule);
 
     const config = new DocumentBuilder()

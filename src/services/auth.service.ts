@@ -1,5 +1,6 @@
 import { UserSignInBody, UserSignUpBody } from "@bato-urbanflow/urbanflow-models";
 import { Inject, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { ClientGrpc, ClientProxy, RpcException } from "@nestjs/microservices";
 import { IAuthService } from "../interfaces/auth-service.interface";
@@ -15,6 +16,7 @@ export class AuthService implements IAuthService {
 
     constructor(
         private readonly jwtService: JwtService,
+        private readonly configService: ConfigService,
         private readonly logsService: LogsService,
         @Inject("NOTIFICATIONS_SERVICE") private readonly notificationClient: ClientProxy,
         @Inject("USER_PACKAGE") private readonly userClient: ClientGrpc,
@@ -66,8 +68,12 @@ export class AuthService implements IAuthService {
 
     async refreshToken(token: string): Promise<UserDtoGrpc> {
         try {
-            const decoded = await this.jwtService.verifyAsync(token, { algorithms: ["HS256"] });
+            const decoded = await this.jwtService.verifyAsync(token, {
+                secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
+                algorithms: ["HS256"],
+            });
             if (!decoded?.sub) throw new Error("Invalid token");
+            if (decoded.typ !== "refresh") throw new Error("Wrong token type");
 
             const res = await firstValueFrom(
                 this.userService.findOneById({ id: decoded.sub })
@@ -88,9 +94,22 @@ export class AuthService implements IAuthService {
     }
 
     private async userWithTokens(userId: number, role: string): Promise<UserDtoGrpc> {
-        const payload = { sub: userId, role };
-        const accessToken = await this.jwtService.signAsync(payload, { expiresIn: "1h" });
-        const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: "30d" });
+        const accessToken = await this.jwtService.signAsync(
+            { sub: userId, role, typ: "access" },
+            {
+                secret: this.configService.get<string>("JWT_SECRET"),
+                algorithm: "HS256",
+                expiresIn: "1h",
+            },
+        );
+        const refreshToken = await this.jwtService.signAsync(
+            { sub: userId, role, typ: "refresh" },
+            {
+                secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
+                algorithm: "HS256",
+                expiresIn: "30d",
+            },
+        );
         const hashedRefreshToken = await this.hashRefreshToken(refreshToken);
 
         const updated = await firstValueFrom(
