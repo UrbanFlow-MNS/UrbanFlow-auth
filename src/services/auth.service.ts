@@ -65,7 +65,7 @@ export class AuthService implements IAuthService {
 
     async refreshToken(token: string): Promise<UserDtoGrpc> {
         try {
-            const decoded = await this.jwtService.verifyAsync(token);
+            const decoded = await this.jwtService.verifyAsync(token, { algorithms: ["HS256"] });
             if (!decoded?.sub) throw new Error("Invalid token");
 
             const res = await firstValueFrom(

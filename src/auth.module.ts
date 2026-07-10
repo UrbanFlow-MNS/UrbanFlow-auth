@@ -17,9 +17,16 @@ import { NotificationsModule } from "./notifications/notifications.module";
         JwtModule.registerAsync({
             global: true,
             imports: [ConfigModule],
-            useFactory: (config: ConfigService) => ({
-                secret: config.get<string>("JWT_SECRET"),
-            }),
+            useFactory: (config: ConfigService) => {
+                const secret = config.get<string>("JWT_SECRET");
+                if (!secret) {
+                    throw new Error("JWT_SECRET is not defined");
+                }
+                return {
+                    secret,
+                    signOptions: { algorithm: "HS256" },
+                };
+            },
             inject: [ConfigService],
         }),
         LogsModule,

@@ -5,6 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AuthModule } from './auth.module';
 
 async function bootstrap() {
+    const authInternalSecret = process.env.AUTH_INTERNAL_SECRET;
+    if (!authInternalSecret) {
+        throw new Error("AUTH_INTERNAL_SECRET is not defined.");
+    }
+
     const app = await NestFactory.create(AuthModule);
 
     const config = new DocumentBuilder()
